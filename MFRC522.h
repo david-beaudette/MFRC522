@@ -140,6 +140,7 @@ class MFRC522 {
   int readFromTag(byte blockAddr, byte *recvData);
   int writeToTag(byte blockAddr, byte *writeData);
   int haltTag();
+  int readSerial(byte *serial, byte *type);
 
  private:
   int _sad, _reset;

@@ -578,7 +578,7 @@ int MFRC522::readFromTag(byte block, byte *result) {
   @brief   Tries to write to a block on the current tag.
 
   @param   block  The block that we want to write to.
-  @param   data   The data that we shoudl write to the block.
+  @param   data   The data that we should write to the block.
 
   @returns Returns the status of the collision detection.
            MI_ERR        if something went wrong,
@@ -635,5 +635,56 @@ int MFRC522::haltTag() {
   status = commandTag(MFRC522_TRANSCEIVE, buffer, 4, buffer, &len);
 
   return status;
+}
+
+/**************************************************************************/
+/*!
+
+  @brief   Detects a proximity card and returns its serial.
+
+  @param   serial  byte buffer of 4 elements where serial will be written
+  @param   type    byte buffer of 2 elements where card type will be written
+  
+  @returns Returns the result of the reading.
+           -1        If the command didn't complete properly.
+            0        If no card was detected.
+            1        If a card serial was read.
+ */
+/**************************************************************************/
+int MFRC522::readSerial(byte *serial, byte *type) {
+  // Check if input buffer is initialised
+  
+  byte card_status;
+  byte data[MAX_LEN];
+  
+  // Check for card near reader
+  card_status = requestTag(MF1_REQIDL, data);
+
+  if (card_status == MI_ERR) {
+    Serial.println("Error reading card.");  
+    return -1;  
+  }
+  else if (card_status == MI_NOTAGERR) {
+    // No card detected
+    return 0;
+  }
+  else if (card_status == MI_OK) {
+    // Card detected, write type
+    memcpy(type, data, 2);
+    // Calculate the anti-collision value for the currently
+    // detected tag and write the serial
+    card_status = antiCollision(data);
+
+    if (card_status == MI_ERR) {
+      Serial.println("Error in serial checksum.");
+      return -1;      
+    } 
+    else {
+      memcpy(serial, data, 4);  
+      // Stop the tag and get ready for reading a new tag.
+      haltTag();      
+    }
+  }
+  return 1;
 }
 
